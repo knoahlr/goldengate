@@ -1,0 +1,11 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\.github",
+    "\\.github\\workflows",
+    "\\goldengate",
+    "\\goldengate\\utils"
+  ],
+  "SelectedNode": "\\.github\\dependabot.yml",
+  "PreviewInSolutionExplorer": false
+}
