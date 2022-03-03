@@ -2,7 +2,7 @@ from django.contrib.auth.models import AbstractUser
 from django.db.models import CharField
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
-
+from crispy_forms.helper import FormHelper
 
 class User(AbstractUser):
     """Default user for GoldenGate."""
@@ -20,3 +20,4 @@ class User(AbstractUser):
 
         """
         return reverse("users:detail", kwargs={"username": self.username})
+

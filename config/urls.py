@@ -10,8 +10,9 @@ urlpatterns = [
     path(
         "about/", TemplateView.as_view(template_name="pages/about.html"), name="about"
     ),
+
     # Django Admin, use {% url 'admin:index' %}
-    path(settings.ADMIN_URL, admin.site.urls),
+    # path(settings.ADMIN_URL, admin.site.urls),
     # User management
     path("users/", include("goldengate.users.urls", namespace="users")),
     path("accounts/", include("allauth.urls")),
