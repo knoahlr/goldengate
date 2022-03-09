@@ -14,7 +14,7 @@
 
 {% if socialaccount_providers %}
 <p>{% blocktrans with site.name as site_name %}Please sign in with one
-of your existing third party accounts. Or, <a href="{{ signup_url }}">sign up</a>
+of your existing third party accounts.{% endblocktrans %} Or, <a href="{% url 'users:applicant_signup' %}">sign up</a>{% blocktrans with site.name as site_name %}
 for a {{ site_name }} account and sign in below:{% endblocktrans %}</p>
 
 <div class="socialaccount_ballot">
@@ -30,11 +30,21 @@ for a {{ site_name }} account and sign in below:{% endblocktrans %}</p>
 {% include "socialaccount/snippets/login_extra.html" %}
 
 {% else %}
-<p>{% blocktrans %}If you have not created an account yet, then please
-<a href="{{ signup_url }}">sign up</a> first.{% endblocktrans %}</p>
+<p>If you have not created an account yet, then please
+<a href="{% url 'users:applicant_signup' %}">sign up</a> first.</p>
 {% endif %}
 
-<form class="login" method="POST" action="{% url 'account_login' %}">
+{% if form.errors %}
+       {% for field in form %}
+           {% for error in field.errors %} 
+              <div class="alert alert-danger">
+                   <strong>{{ error|escape }}</strong>
+              </div>
+           {% endfor %}
+       {% endfor %}
+{% endif %}
+
+<form class="AccountHolderForm" method="post" action="{% url 'users:account_holder_login' %}">
   {% csrf_token %}
   {{ form|crispy }}
   {% if redirect_field_value %}

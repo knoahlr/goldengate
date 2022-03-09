@@ -1,4 +1,5 @@
 from __future__ import division
+import re
 from typing_extensions import Self
 from xml.dom import ValidationErr
 from django.contrib.auth import forms as admin_forms
@@ -48,5 +49,34 @@ class ApplicantUserForm(forms.Form):
         user = get_user_model()
         if not user.objects.exclude().filter(username=username).exists():
             user.objects.create_user(username=username, password=password)
+            return True
         else:
             self.add_error(field="user_email", error=forms.ValidationError("Username already registered to an account."))
+            return False
+
+
+class AccountHolderForm(forms.Form):
+    '''User leaving information to be contacted by goldengate'''
+
+    username = forms.EmailField(max_length=100)
+    phone_number = forms.RegexField(regex=r'^\+?1?\d{9,15}$', 
+                                error_messages = {"required": "Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."},
+                                required=False)
+    password = forms.CharField(widget=forms.PasswordInput())
+
+    # Put in custom signup logic
+    def authenticate_user(self, request, username, password):
+        '''
+        Check if user exists in the database, if not add them and email a welcome message.
+        '''
+        user = get_user_model()
+        if user.objects.exclude().filter(username=username).exists():
+            authenticated_user = authenticate(request, username=username, password=password)
+            if authenticated_user is not None:
+                login(request, authenticated_user)
+                return True
+            else:
+                self.add_error(field="username", error=forms.ValidationError("Wrong password supplied for user account"))
+        else:
+            self.add_error(field="username", error=forms.ValidationError("There's no account registered with that username."))
+            return False

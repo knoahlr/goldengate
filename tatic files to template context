@@ -1,0 +1,347 @@
+[1mdiff --git a/config/urls.py b/config/urls.py[m
+[1mindex 5a1dd65..4fbac00 100644[m
+[1m--- a/config/urls.py[m
+[1m+++ b/config/urls.py[m
+[36m@@ -5,8 +5,10 @@[m [mfrom django.urls import include, path[m
+ from django.views import defaults as default_views[m
+ from django.views.generic import TemplateView[m
+ [m
+[32m+[m[32mfrom goldengate.users import views[m
+[32m+[m
+ urlpatterns = [[m
+[31m-    path("", TemplateView.as_view(template_name="pages/home.html"), name="home"),[m
+[32m+[m[32m    path("", views.homeView, name="home"),[m
+     path([m
+         "about/", TemplateView.as_view(template_name="pages/about.html"), name="about"[m
+     ),[m
+[1mdiff --git a/db.sqlite3 b/db.sqlite3[m
+[1mindex 35c2fba..9eec8ca 100644[m
+Binary files a/db.sqlite3 and b/db.sqlite3 differ
+[1mdiff --git a/goldengate/templates/account/login.html b/goldengate/templates/account/login.html[m
+[1mindex acef901..5619741 100644[m
+[1m--- a/goldengate/templates/account/login.html[m
+[1m+++ b/goldengate/templates/account/login.html[m
+[36m@@ -14,7 +14,7 @@[m
+ [m
+ {% if socialaccount_providers %}[m
+ <p>{% blocktrans with site.name as site_name %}Please sign in with one[m
+[31m-of your existing third party accounts. Or, <a href="{{ signup_url }}">sign up</a>[m
+[32m+[m[32mof your existing third party accounts.{% endblocktrans %} Or, <a href="{% url 'users:applicant_signup' %}">sign up</a>{% blocktrans with site.name as site_name %}[m
+ for a {{ site_name }} account and sign in below:{% endblocktrans %}</p>[m
+ [m
+ <div class="socialaccount_ballot">[m
+[36m@@ -30,11 +30,21 @@[m [mfor a {{ site_name }} account and sign in below:{% endblocktrans %}</p>[m
+ {% include "socialaccount/snippets/login_extra.html" %}[m
+ [m
+ {% else %}[m
+[31m-<p>{% blocktrans %}If you have not created an account yet, then please[m
+[31m-<a href="{{ signup_url }}">sign up</a> first.{% endblocktrans %}</p>[m
+[32m+[m[32m<p>If you have not created an account yet, then please[m
+[32m+[m[32m<a href="{% url 'users:applicant_signup' %}">sign up</a> first.</p>[m
+ {% endif %}[m
+ [m
+[31m-<form class="login" method="POST" action="{% url 'account_login' %}">[m
+[32m+[m[32m{% if form.errors %}[m
+[32m+[m[32m       {% for field in form %}[m
+[32m+[m[32m           {% for error in field.errors %}[m[41m [m
+[32m+[m[32m              <div class="alert alert-danger">[m
+[32m+[m[32m                   <strong>{{ error|escape }}</strong>[m
+[32m+[m[32m              </div>[m
+[32m+[m[32m           {% endfor %}[m
+[32m+[m[32m       {% endfor %}[m
+[32m+[m[32m{% endif %}[m
+[32m+[m
+[32m+[m[32m<form class="AccountHolderForm" method="post" action="{% url 'users:account_holder_login' %}">[m
+   {% csrf_token %}[m
+   {{ form|crispy }}[m
+   {% if redirect_field_value %}[m
+[1mdiff --git a/goldengate/templates/account/signup.html b/goldengate/templates/account/signup.html[m
+[1mindex 8a9a662..054a006 100644[m
+[1m--- a/goldengate/templates/account/signup.html[m
+[1m+++ b/goldengate/templates/account/signup.html[m
+[36m@@ -8,7 +8,7 @@[m
+ {% block inner %}[m
+ <h1>{% trans "Sign Up" %}</h1>[m
+ [m
+[31m-<p>{% blocktrans %}Already have an account? Then please <a href="{{ login_url }}">sign in</a>.{% endblocktrans %}</p>[m
+[32m+[m[32m<p>Already have an account? Then please <a href="{% url 'users:account_holder_login' %}">sign in</a>.</p>[m
+ [m
+ {% if form.errors %}[m
+        {% for field in form %}[m
+[1mdiff --git a/goldengate/templates/base.html b/goldengate/templates/base.html[m
+[1mindex afa3470..865f35f 100644[m
+[1m--- a/goldengate/templates/base.html[m
+[1m+++ b/goldengate/templates/base.html[m
+[36m@@ -74,7 +74,7 @@[m
+               </li>[m
+               <li class="nav-item">[m
+                 {# URL provided by django-allauth/account/urls.py #}[m
+[31m-                <a id="log-in-link" class="nav-link" href="{% url 'account_login' %}">{% trans "Sign In" %}</a>[m
+[32m+[m[32m                <a id="log-in-link" class="nav-link" href="{% url 'users:account_holder_login' %}">{% trans "Sign In" %}</a>[m
+               </li>[m
+             {% endif %}[m
+           </ul>[m
+[1mdiff --git a/goldengate/templates/pages/home.html b/goldengate/templates/pages/home.html[m
+[1mindex 4f33de0..4dfd58c 100644[m
+[1m--- a/goldengate/templates/pages/home.html[m
+[1m+++ b/goldengate/templates/pages/home.html[m
+[36m@@ -10,45 +10,31 @@[m
+                 <button type="button" data-bs-target="#myCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>[m
+             </div>[m
+ [m
+[31m-            <div class="carousel-inner">[m
+[31m-                <div class="carousel-item active">[m
+[31m-                <!-- <svg class="bd-placeholder-img" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" preserveAspectRatio="xMidYMid slice" focusable="false"><rect width="100%" height="100%" fill="#777"/></svg> -->[m
+[31m-                <img class="bd-placeholder-img" src="{% static 'images/home/flyover.jpg' %}" >[m
+[31m-[m
+[32m+[m[32m            {% if request.user.is_authenticated %}[m
+                 <div class="container">[m
+[31m-                    <div class="carousel-caption text-start">[m
+[31m-                    <p><a class="btn btn-lg btn-primary"href="{% url 'users:applicant_signup' %}">Sign up today</a></p>[m
+[32m+[m[32m                    <div class="jumbotron">[m
+[32m+[m[32m                    <h1>WELCOME {{ request.user.get_full_name }}</h1>[m
+[32m+[m[32m                    <p>Thank You for taking part in the development of the golden gate page.</p>[m
+                     </div>[m
+                 </div>[m
+[31m-                </div>[m
+[32m+[m[32m            {% endif %}[m
+ [m
+ [m
+[31m-                <div class="carousel-item">[m
+[31m-                <!-- <svg class="bd-placeholder-img" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" preserveAspectRatio="xMidYMid slice" focusable="false"><rect width="100%" height="100%" fill="#777"/></svg> -->[m
+[31m-        [m
+[31m-                <img class="bd-placeholder-img" src="{% static 'images/home/landscape.jfif' %}" >[m
+[32m+[m[32m            <div class="carousel-inner">[m
+ [m
+[31m-                <div class="container">[m
+[31m-                    <div class="carousel-caption">[m
+[31m-                    <p><a class="btn btn-lg btn-primary" href="#">Learn more</a></p>[m
+[32m+[m[32m                {% for file in files %}[m
+[32m+[m[32m                    <div class="carousel-item active"></div>[m
+[32m+[m[32m                        <img src="{% static file %}" alt="">[m
+[32m+[m
+[32m+[m[32m                        <div class="container">[m
+[32m+[m[32m                            <div class="carousel-caption text-start">[m
+[32m+[m[32m                            <p><a class="btn btn-lg btn-primary"href="{% url 'users:applicant_signup' %}">Sign up today</a></p>[m
+[32m+[m[32m                            </div>[m
+[32m+[m[32m                        </div>[m
+                     </div>[m
+[31m-                </div>[m
+[31m-                </div>[m
+ [m
+[32m+[m[32m                {% endfor %}[m
+ [m
+[31m-                <div class="carousel-item">[m
+[31m-                <!-- <svg class="bd-placeholder-img" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" preserveAspectRatio="xMidYMid slice" focusable="false"><rect width="100%" height="100%" fill="#777"/></svg> -->[m
+[31m-        [m
+[31m-                <img class="bd-placeholder-img" src="{% static 'images/home/mm.jpg' %}" >[m
+[31m-                [m
+[31m-                <div class="container">[m
+[31m-                    <div class="carousel-caption text-end">[m
+[31m-                    <p><a class="btn btn-lg btn-primary" href="#">Browse gallery</a></p>[m
+[31m-                    </div>[m
+[31m-                </div>[m
+[31m-                </div>[m
+[31m-            </div>[m
+[31m-            [m
+             <button class="carousel-control-prev" type="button" data-bs-target="#myCarousel" data-bs-slide="prev">[m
+                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>[m
+                 <span class="sr-only">Previous</span>[m
+[36m@@ -59,7 +45,7 @@[m
+             </button>[m
+ [m
+         </div>[m
+[31m-</Main>[m
+[32m+[m[32m    </Main>[m
+ [m
+ [m
+ [m
+[1mdiff --git a/goldengate/users/forms.py b/goldengate/users/forms.py[m
+[1mindex a7fe872..5918b9d 100644[m
+[1m--- a/goldengate/users/forms.py[m
+[1m+++ b/goldengate/users/forms.py[m
+[36m@@ -1,4 +1,5 @@[m
+ from __future__ import division[m
+[32m+[m[32mimport re[m
+ from typing_extensions import Self[m
+ from xml.dom import ValidationErr[m
+ from django.contrib.auth import forms as admin_forms[m
+[36m@@ -48,5 +49,34 @@[m [mclass ApplicantUserForm(forms.Form):[m
+         user = get_user_model()[m
+         if not user.objects.exclude().filter(username=username).exists():[m
+             user.objects.create_user(username=username, password=password)[m
+[32m+[m[32m            return True[m
+         else:[m
+             self.add_error(field="user_email", error=forms.ValidationError("Username already registered to an account."))[m
+[32m+[m[32m            return False[m
+[32m+[m
+[32m+[m
+[32m+[m[32mclass AccountHolderForm(forms.Form):[m
+[32m+[m[32m    '''User leaving information to be contacted by goldengate'''[m
+[32m+[m
+[32m+[m[32m    username = forms.EmailField(max_length=100)[m
+[32m+[m[32m    phone_number = forms.RegexField(regex=r'^\+?1?\d{9,15}$',[m[41m [m
+[32m+[m[32m                                error_messages = {"required": "Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."},[m
+[32m+[m[32m                                required=False)[m
+[32m+[m[32m    password = forms.CharField(widget=forms.PasswordInput())[m
+[32m+[m
+[32m+[m[32m    # Put in custom signup logic[m
+[32m+[m[32m    def authenticate_user(self, request, username, password):[m
+[32m+[m[32m        '''[m
+[32m+[m[32m        Check if user exists in the database, if not add them and email a welcome message.[m
+[32m+[m[32m        '''[m
+[32m+[m[32m        user = get_user_model()[m
+[32m+[m[32m        if user.objects.exclude().filter(username=username).exists():[m
+[32m+[m[32m            authenticated_user = authenticate(request, username=username, password=password)[m
+[32m+[m[32m            if authenticated_user is not None:[m
+[32m+[m[32m                login(request, authenticated_user)[m
+[32m+[m[32m                return True[m
+[32m+[m[32m            else:[m
+[32m+[m[32m                self.add_error(field="username", error=forms.ValidationError("Wrong password supplied for user account"))[m
+[32m+[m[32m        else:[m
+[32m+[m[32m            self.add_error(field="username", error=forms.ValidationError("There's no account registered with that username."))[m
+[32m+[m[32m            return False[m
+\ No newline at end of file[m
+[1mdiff --git a/goldengate/users/urls.py b/goldengate/users/urls.py[m
+[1mindex 9359658..0e8d04a 100644[m
+[1m--- a/goldengate/users/urls.py[m
+[1m+++ b/goldengate/users/urls.py[m
+[36m@@ -4,6 +4,7 @@[m [mfrom goldengate.users.views import ([m
+     user_redirect_view,[m
+     user_update_view,[m
+     applicant_user,[m
+[32m+[m[32m    account_holding_user,[m
+ )[m
+ [m
+ app_name = "users"[m
+[36m@@ -12,4 +13,6 @@[m [murlpatterns = [[m
+     path("~update/", view=user_update_view, name="update"),[m
+     path("<str:username>/", view=user_detail_view, name="detail"),[m
+     path("", view=applicant_user, name="applicant_signup"),[m
+[32m+[m[32m    path("1", view=account_holding_user, name="account_holder_login"),[m
+[32m+[m
+ ][m
+[1mdiff --git a/goldengate/users/views.py b/goldengate/users/views.py[m
+[1mindex b65db49..db6a1dd 100644[m
+[1m--- a/goldengate/users/views.py[m
+[1m+++ b/goldengate/users/views.py[m
+[36m@@ -6,13 +6,14 @@[m [mfrom django.contrib.messages.views import SuccessMessageMixin[m
+ from django.http import HttpResponse[m
+ from django.urls import reverse[m
+ from django.utils.translation import gettext_lazy as _[m
+[31m-from django.views.generic import DetailView, RedirectView, UpdateView[m
+[32m+[m[32mfrom django.views.generic import DetailView, RedirectView, UpdateView, TemplateView[m
+ from django.views.generic.edit import FormView[m
+ from django.template.response import TemplateResponse[m
+ from django.shortcuts import render[m
+[32m+[m[32mfrom django.conf import settings[m
+ [m
+[31m-from .forms import ApplicantUserForm[m
+[31m-[m
+[32m+[m[32mfrom .forms import ApplicantUserForm, AccountHolderForm[m
+[32m+[m[32mimport os[m
+ [m
+ User = get_user_model()[m
+ [m
+[36m@@ -53,6 +54,36 @@[m [mclass UserRedirectView(LoginRequiredMixin, RedirectView):[m
+ [m
+ user_redirect_view = UserRedirectView.as_view()[m
+ [m
+[32m+[m[32mclass GoldenGateHomeView(TemplateView):[m
+[32m+[m
+[32m+[m
+[32m+[m[32m    template_name = "account/home.html"[m
+[32m+[m[32m    form_class = ApplicantUserForm[m
+[32m+[m[32m    success_url = None[m
+[32m+[m
+[32m+[m[32m    def form_valid(self, form):[m
+[32m+[m[32m        return super().form_valid(form)[m[41m [m
+[32m+[m[41m    [m
+[32m+[m[32m    def dispatch(self, request, *args, **kwargs):[m
+[32m+[m[32m        if self.request.method == "GET":[m
+[32m+[m[32m            '''[m
+[32m+[m[32m            Add static files to template context[m
+[32m+[m[32m            '''[m
+[32m+[m[32m            context_dict = {}[m
+[32m+[m[32m            files = os.listdir(os.path.join(settings.STATIC_DIR, "images/home/"))[m
+[32m+[m[32m            context_dict['files'] = files[m
+[32m+[m[32m            return render(request, template_name=self.template_name, context=context_dict)[m
+[32m+[m
+[32m+[m[32m    def get_success_url(self):[m
+[32m+[m[32m        # Explicitly passed ?next= URL takes precedence[m
+[32m+[m[32m        return reverse('home')[m
+[32m+[m
+[32m+[m[32m    def get_context_data(self, **kwargs):[m
+[32m+[m[32m        ret = super(ApplicantUserFormView, self).get_context_data(**kwargs)[m
+[32m+[m[32m        return ret[m
+[32m+[m
+[32m+[m[32mhomeView = GoldenGateHomeView.as_view()[m
+[32m+[m
+ [m
+ class ApplicantUserFormView(FormView):[m
+ [m
+[36m@@ -69,10 +100,16 @@[m [mclass ApplicantUserFormView(FormView):[m
+             if form.is_valid():[m
+                 user_email = form.cleaned_data["user_email"][m
+                 password = form.cleaned_data["password"]    [m
+[31m-                form.add_user(user_email, password)[m
+[31m-            return render(request, template_name=self.template_name, context={"form":form})[m
+[32m+[m[32m            if form.add_user(user_email, password):[m[41m [m
+[32m+[m[32m                '''[m
+[32m+[m[32m                perform user login and provide redirected login page[m
+[32m+[m[32m                '''[m
+[32m+[m[32m                return render(request, "pages/home.html")[m
+[32m+[m[32m            else: return render(request, template_name=self.template_name, context={"form":form})[m
+         else:[m
+[31m-            return super(ApplicantUserFormView, self).dispatch(request, *args, **kwargs)[m
+[32m+[m[32m            # return super(ApplicantUserFormView, self).dispatch(request, *args, **kwargs)[m
+[32m+[m[32m            form = self.get_context_data()["form"][m
+[32m+[m[32m            return render(request, template_name=self.template_name, context={"form":form})[m
+ [m
+ [m
+     def get_success_url(self):[m
+[36m@@ -86,3 +123,44 @@[m [mclass ApplicantUserFormView(FormView):[m
+ [m
+ [m
+ applicant_user = ApplicantUserFormView.as_view()[m
+[32m+[m
+[32m+[m
+[32m+[m[32mclass LoginUserView(FormView):[m
+[32m+[m
+[32m+[m[32m    template_name = "account/login.html"[m
+[32m+[m[32m    form_class = AccountHolderForm[m
+[32m+[m[32m    success_url = None[m
+[32m+[m
+[32m+[m[32m    def form_valid(self, form):[m
+[32m+[m[32m        return super().form_valid(form)[m[41m [m
+[32m+[m[41m    [m
+[32m+[m[32m    def dispatch(self, request, *args, **kwargs):[m
+[32m+[m[32m        if self.request.method == "POST":[m
+[32m+[m[32m            form = self.get_context_data()["form"][m
+[32m+[m[32m            if form.is_valid():[m
+[32m+[m[32m                '''[m
+[32m+[m[32m                perform user login and provide redirected login page[m
+[32m+[m[32m                '''[m
+[32m+[m[32m                username = form.cleaned_data["username"][m
+[32m+[m[32m                password = form.cleaned_data["password"][m[41m    [m
+[32m+[m[32m                if form.authenticate_user(request, username, password):[m
+[32m+[m[32m                    return render(request, "pages/home.html")[m[41m [m
+[32m+[m[32m                else: return render(request, template_name=self.template_name, context={"form":form})[m
+[32m+[m[32m            else: return render(request, template_name=self.template_name, context={"form":form})[m
+[32m+[m[32m        else:[m
+[32m+[m[32m            # return super(ApplicantUserFormView, self).dispatch(request, *args, **kwargs)[m
+[32m+[m[32m            form = self.get_context_data()["form"][m
+[32m+[m[32m            return render(request, template_name=self.template_name, context={"form":form})[m
+[32m+[m
+[32m+[m
+[32m+[m[32m    def get_success_url(self):[m
+[32m+[m[32m        # Explicitly passed ?next= URL takes precedence[m
+[32m+[m[32m        return reverse('home')[m
+[32m+[m
+[32m+[m[32m    def get_context_data(self, **kwargs):[m
+[32m+[m[32m        ret = super(LoginUserView, self).get_context_data(**kwargs)[m
+[32m+[m[32m        return ret[m
+[32m+[m
+[32m+[m
+[32m+[m
+[32m+[m[32maccount_holding_user = LoginUserView.as_view()[m

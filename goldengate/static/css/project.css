@@ -1,36 +1,105 @@
 
 
-/* body {
-  padding-top: 3rem;
-  padding-bottom: 3rem;
-  color: #d3be03;
-} */
-
-.mb-1{
-  background-color: #d30303;
-}
-
-/* Since positioning the image, we need to help out the caption */
-.carousel-caption {
-  bottom: 3rem;
-  z-index: 10;
-}
-
-/* Declare heights because of positioning of img element */
-.carousel-item {
-  height: 32rem;
-}
-.carousel-item > img {
+.blog-footer {
+  color: rgb(12, 11, 11);
+  text-align: center;
+  align-content: center;
   position: absolute;
-  top: 0;
-  left: 0;
-  min-width: 100%;
-  height: 32rem;
+  bottom: 0;
+  width: 100%;
+  height: 150px;
+  border-radius: 5px;
+  padding: 15px;
+  font-size: xx-large;
+  font-weight: bolder;
+}
+
+
+/* nav bar content */
+.mb-1{
+  background-color: #fd63ca;
+  display: flex;
+  flex-direction: row;
+}
+
+
+#navbarSupportedContent {
+  overflow: hidden;
+  background-color: #fd63ca;
 
 }
 
-.carousel-inner{
-  background-color: #d30303;
+#navbarSupportedContent a {
+  float: left;
+  color: #0e0d0d;
+  text-align: center;
+  padding: 14px 16px;
+  text-decoration: none;
+  font-size: 17px;
+}
+
+#navbarSupportedContent a:hover {
+  background-color: #ddd;
+  color: black;
+}
+
+#navbarSupportedContent a.active {
+  background-color: #04AA6D;
+  color: white;
+}
+
+.navbar-brand {
+  font-size: 37px;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: bolder;
+}
+
+/* carousel contents */
+
+.carousel-control-next .carousel-control-prev {
+  filter: none;
+  background-color: transparent;
+}
+
+.carousel-control-prev :hover,
+.carousel-control-next:focus {
+  filter: none;
+  opacity: 0.5;
+}
+
+.carousel-item {
+  height: 70%;
+  background-color: #777;
+}
+
+.carousel-indicators li {
+  width: 10px;
+  height: 10px;
+  border-radius: 100%;
+}
+.carousel-indicators {
+  bottom: -50px;
+}
+
+html{
+  height: 100%;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background-color: rgb(22, 123, 190);
+  min-height: 100%;
+}
+
+p{
+  text-align: center;
+  line-height: 100px;
+}
+
+nav{
+  flex: 1;
+  background-color: #50cad3;
 }
 
 /* These styles are generated from project.scss. */
