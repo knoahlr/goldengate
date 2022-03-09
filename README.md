@@ -9,4 +9,4 @@ Golden Gate information center. A Django web application
 
 ## Homepage
 --------
-![homepage]("goldengate\static\images\misc\homepage.png")
+![homepage](goldengate/static/images/misc/homepage.png)
