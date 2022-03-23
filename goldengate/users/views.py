@@ -1,5 +1,7 @@
 from msilib.schema import Class
 from multiprocessing import context
+from sys import prefix
+from turtle import st
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
@@ -12,8 +14,9 @@ from django.template.response import TemplateResponse
 from django.shortcuts import render
 from django.conf import settings
 
+from utils.storages import StaticRootS3Boto3Storage
 from .forms import ApplicantUserForm, AccountHolderForm
-import os
+import os, boto3, environ
 
 User = get_user_model()
 
@@ -60,20 +63,35 @@ class GoldenGateHomeView(TemplateView):
     template_name = "pages/home.html"
     form_class = ApplicantUserForm
     success_url = None
-
+    
     def form_valid(self, form):
         return super().form_valid(form) 
     
     def dispatch(self, request, *args, **kwargs):
-        if self.request.method == "GET":
-            '''
-            Add static files to template context
-            '''
-            context_dict = {}
-            files = os.listdir(settings.STATIC_ROOT + "/images/home/")
-            files = ["/images/home/"+ file for file in files]
-            context_dict['files'] = files
+        context_dict = {}
+
+
+        if not settings.SETTINGS_MODULE == "config.settings.production":
+            if self.request.method == "GET":
+                '''
+                Add static files to template context
+                '''
+                homepage_files = os.listdir(settings.STATIC_ROOT + "\\images\\home\\")
+                homepage_relative_path = [settings.STATIC_URL + "images/home/"+ file for file in homepage_files]
+                context_dict['files'] = homepage_relative_path
+                return render(request, template_name=self.template_name, context=context_dict)
+        else:
+            files = list()
+            env = environ.Env() 
+            awsSession = boto3.Session(aws_access_key_id=env("DJANGO_AWS_ACCESS_KEY_ID"), aws_secret_access_key=env("DJANGO_AWS_SECRET_ACCESS_KEY"))
+            bucket = awsSession.resource('s3').Bucket('golden-gate-bomet')
+            bucketFiles = bucket.objects.filter(Prefix="static/images/home") #need a thread to periodically keep track of this
+            if bucketFiles:
+                file_urls = [settings.AWS_S3_CUSTOM_DOMAIN + "/" +file.key for file in bucketFiles]
+                context_dict['files'] = file_urls
+            else: context_dict['files'] = []
             return render(request, template_name=self.template_name, context=context_dict)
+
 
     def get_success_url(self):
         # Explicitly passed ?next= URL takes precedence
@@ -100,8 +118,15 @@ class ApplicantUserFormView(FormView):
             form = self.get_context_data()["form"]
             if form.is_valid():
                 user_email = form.cleaned_data["user_email"]
-                password = form.cleaned_data["password"]    
-            if form.add_user(user_email, password): 
+                password = form.cleaned_data["password"]
+                first_name = form.cleaned_data["first_name"]
+                last_name = form.cleaned_data["last_name"]
+                phone_number = form.cleaned_data["phone_number"]
+                county = form.cleaned_data["county"]
+                district = form.cleaned_data["district"]
+                division = form.cleaned_data["division"]
+                extra_fields = {"first_name":first_name, "last_name":last_name, "county":county, "district":district, "division":division} #phone_number missing
+            if form.add_user(user_email, password, **extra_fields): 
                 '''
                 perform user login and provide redirected login page
                 '''

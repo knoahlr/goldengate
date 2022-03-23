@@ -12,7 +12,7 @@
       <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv.min.js"></script>
     <![endif]-->
 
-    <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}">
+    <link rel="icon" href="{{STATIC_URL}}images/favicons/favicon.ico">
 
     {% block css %}
     <!-- Latest compiled and minified Bootstrap CSS -->
@@ -20,7 +20,7 @@
 
     <!-- Your stuff: Third-party CSS libraries go here -->
     <!-- This file stores project-specific CSS -->
-    <link href="{% static 'css/project.css' %}" rel="stylesheet">
+    <link href="{{STATIC_URL}}css/project.css" rel="stylesheet">
     {% endblock %}
     <!-- Le javascript
     ================================================== -->
@@ -34,7 +34,7 @@
       <!-- Your stuff: Third-party javascript libraries go here -->
 
       <!-- place project specific Javascript in this file -->
-      <script defer src="{% static 'js/project.js' %}"></script>
+      <script defer src="{{STATIC_URL}}js/project.js"></script>
 
     {% endblock javascript %}
 
@@ -58,7 +58,7 @@
             {% if request.user.is_authenticated %}
               <li class="nav-item">
                 {# URL provided by django-allauth/account/urls.py #}
-                <a class="nav-link" href="{% url 'users:detail' request.user.username  %}">{% trans "My Profile" %}</a>
+                <a class="nav-link" href="{% url 'users:detail' request.user.first_name  %}">{% trans "My Profile" %}</a>
               </li>
               <li class="nav-item">
                 {# URL provided by django-allauth/account/urls.py #}

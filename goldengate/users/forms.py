@@ -5,31 +5,34 @@ from xml.dom import ValidationErr
 from django.contrib.auth import forms as admin_forms
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login
-from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from django import forms
 from allauth.account.forms import SignupForm
 
-User = get_user_model()
+
+# User = get_user_model()
+from .models import ApplicantUser
 
 
 class UserChangeForm(admin_forms.UserChangeForm):
     class Meta(admin_forms.UserChangeForm.Meta):
-        model = User
-
+        model = ApplicantUser
+        fields = {"first_name", "last_name", "user_email", "county", "district", "division"}
 
 class UserCreationForm(admin_forms.UserCreationForm):
     
     class Meta(admin_forms.UserCreationForm.Meta):
-        model = User
+        model = ApplicantUser
+        fields = {"first_name", "last_name", "user_email", "county", "district", "division"}
 
         error_messages = {
-            "username": {"unique": _("This username has already been taken.")}
+            "user_email": {"unique": _("This email is already registered to a user.")}
         }
 
 class ApplicantUserForm(forms.Form):
-    '''User leaving information to be contacted by goldengate'''
-
+    '''
+    User leaving information to be contacted by goldengate
+    '''
 
     first_name = forms.CharField(max_length=100)
     last_name = forms.CharField(max_length=100)
@@ -42,13 +45,13 @@ class ApplicantUserForm(forms.Form):
     division = forms.CharField(max_length=100)
 
     # Put in custom signup logic
-    def add_user(self, username, password):
+    def add_user(self, email, password, **extra_fields):
         '''
         Check if user exists in the database, if not add them and email a welcome message.
         '''
         user = get_user_model()
-        if not user.objects.exclude().filter(username=username).exists():
-            user.objects.create_user(username=username, password=password)
+        if not user.objects.exclude().filter(user_email=email).exists():
+            user.objects.create_user(email, password, **extra_fields)
             return True
         else:
             self.add_error(field="user_email", error=forms.ValidationError("Username already registered to an account."))
@@ -70,7 +73,7 @@ class AccountHolderForm(forms.Form):
         Check if user exists in the database, if not add them and email a welcome message.
         '''
         user = get_user_model()
-        if user.objects.exclude().filter(username=username).exists():
+        if user.objects.exclude().filter(user_email=username).exists():
             authenticated_user = authenticate(request, username=username, password=password)
             if authenticated_user is not None:
                 login(request, authenticated_user)
