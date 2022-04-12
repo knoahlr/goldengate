@@ -44,7 +44,7 @@ for a {{ site_name }} account and sign in below:{% endblocktrans %}</p>
        {% endfor %}
 {% endif %}
 
-<form class="AccountHolderForm" method="post" action="{% url 'users:account_holder_login' %}">
+<form class="AccountHolderForm" method="post" action="{% url 'users:account_holder_login' %}">{% csrf_token %}
   {% csrf_token %}
   {{ form|crispy }}
   {% if redirect_field_value %}

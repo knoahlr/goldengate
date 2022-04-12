@@ -20,7 +20,7 @@
        {% endfor %}
 {% endif %}
 
-<form class="ApplicantUserForm" method="post" action="{% url 'users:applicant_signup' %}">
+<form class="ApplicantUserForm" method="post" action="{% url 'users:applicant_signup' %}">{% csrf_token %}
   {% csrf_token %}
   {{ form|crispy }}
   {% if redirect_field_value %}

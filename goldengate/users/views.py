@@ -68,30 +68,9 @@ class GoldenGateHomeView(TemplateView):
         return super().form_valid(form) 
     
     def dispatch(self, request, *args, **kwargs):
-        context_dict = {}
-
-
-        if not settings.SETTINGS_MODULE == "config.settings.production":
-            if self.request.method == "GET":
-                '''
-                Add static files to template context
-                '''
-                homepage_files = os.listdir(settings.STATIC_ROOT + "\\images\\home\\")
-                homepage_relative_path = [settings.STATIC_URL + "images/home/"+ file for file in homepage_files]
-                context_dict['files'] = homepage_relative_path
-                return render(request, template_name=self.template_name, context=context_dict)
-        else:
-            files = list()
-            env = environ.Env() 
-            awsSession = boto3.Session(aws_access_key_id=env("DJANGO_AWS_ACCESS_KEY_ID"), aws_secret_access_key=env("DJANGO_AWS_SECRET_ACCESS_KEY"))
-            bucket = awsSession.resource('s3').Bucket('golden-gate-bomet')
-            bucketFiles = bucket.objects.filter(Prefix="static/images/home") #need a thread to periodically keep track of this
-            if bucketFiles:
-                file_urls = [settings.AWS_S3_CUSTOM_DOMAIN + "/" +file.key for file in bucketFiles]
-                context_dict['files'] = file_urls
-            else: context_dict['files'] = []
+        
+            context_dict = retrieveHomepageArticlesUrl(request)
             return render(request, template_name=self.template_name, context=context_dict)
-
 
     def get_success_url(self):
         # Explicitly passed ?next= URL takes precedence
@@ -130,7 +109,8 @@ class ApplicantUserFormView(FormView):
                 '''
                 perform user login and provide redirected login page
                 '''
-                return render(request, "pages/home.html")
+                context_dict = retrieveHomepageArticlesUrl(request)
+                return render(request, "pages/home.html", context=context_dict)
             else: return render(request, template_name=self.template_name, context={"form":form})
         else:
             # return super(ApplicantUserFormView, self).dispatch(request, *args, **kwargs)
@@ -170,7 +150,8 @@ class LoginUserView(FormView):
                 username = form.cleaned_data["username"]
                 password = form.cleaned_data["password"]    
                 if form.authenticate_user(request, username, password):
-                    return render(request, "pages/home.html") 
+                    context_dict = retrieveHomepageArticlesUrl(request)
+                    return render(request, "pages/home.html", context=context_dict) 
                 else: return render(request, template_name=self.template_name, context={"form":form})
             else: return render(request, template_name=self.template_name, context={"form":form})
         else:
@@ -190,3 +171,42 @@ class LoginUserView(FormView):
 
 
 account_holding_user = LoginUserView.as_view()
+
+
+
+#view util methods
+
+def retrieveHomepageArticlesUrl(request, context_dict = None):
+    '''
+    Retrieve the path/url to the homepage articles
+    '''
+    if not context_dict: context_dict = dict()
+    
+    if not settings.SETTINGS_MODULE == "config.settings.production":
+        if request.method == "GET":
+            '''
+            Add static files to template context
+            '''
+            homepage_files = os.listdir(settings.STATIC_ROOT + "\\images\\home\\")
+            homepage_relative_path = [settings.STATIC_URL + "images/home/"+ file for file in homepage_files]
+            context_dict['files'] = homepage_relative_path
+            return context_dict
+        elif request.method == "POST": # Not sure why the if statement was put there in the first place. I believe articles should be retrieved on both POST and GET
+            '''
+            Add static files to template context
+            '''
+            homepage_files = os.listdir(settings.STATIC_ROOT + "\\images\\home\\")
+            homepage_relative_path = [settings.STATIC_URL + "images/home/"+ file for file in homepage_files]
+            context_dict['files'] = homepage_relative_path
+            return context_dict
+    else:
+        env = environ.Env() 
+        awsSession = boto3.Session(aws_access_key_id=env("DJANGO_AWS_ACCESS_KEY_ID"), aws_secret_access_key=env("DJANGO_AWS_SECRET_ACCESS_KEY"))
+        bucket = awsSession.resource('s3').Bucket('golden-gate-bomet')
+        bucketFiles = bucket.objects.filter(Prefix="static/images/home") #need a thread to periodically keep track of this
+        if bucketFiles:
+            file_urls = [settings.AWS_S3_CUSTOM_DOMAIN + "/" +file.key for file in bucketFiles]
+            context_dict['files'] = file_urls
+        else: context_dict['files'] = []
+
+    return context_dict
