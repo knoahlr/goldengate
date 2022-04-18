@@ -45,16 +45,39 @@ class ApplicantUserForm(forms.Form):
     division = forms.CharField(max_length=100)
 
     # Put in custom signup logic
-    def add_user(self, email, password, **extra_fields):
+    def add_user(self, request, email, password, **extra_fields):
         '''
         Check if user exists in the database, if not add them and email a welcome message.
         '''
         user = get_user_model()
         if not user.objects.exclude().filter(user_email=email).exists():
             user.objects.create_user(email, password, **extra_fields)
-            return True
+            '''
+            authenticate user. Where to obtain request object from ?
+            '''
+            authenticated_user = authenticate(request, username=email, password=password)
+            if authenticated_user is not None:
+                login(request, authenticated_user)
+                return True
         else:
             self.add_error(field="user_email", error=forms.ValidationError("Username already registered to an account."))
+            return False
+
+    # Put in custom signup logic
+    def authenticate_user(self, request, username, password):
+        '''
+        Check if user exists in the database, if not add them and email a welcome message.
+        '''
+        user = get_user_model()
+        if user.objects.exclude().filter(user_email=username).exists():
+            authenticated_user = authenticate(request, username=username, password=password)
+            if authenticated_user is not None:
+                login(request, authenticated_user)
+                return True
+            else:
+                self.add_error(field="username", error=forms.ValidationError("Wrong password supplied for user account"))
+        else:
+            self.add_error(field="username", error=forms.ValidationError("There's no account registered with that username."))
             return False
 
 

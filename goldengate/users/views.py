@@ -10,6 +10,8 @@ from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, RedirectView, UpdateView, TemplateView
 from django.views.generic.edit import FormView
+from django.views.decorators.csrf import requires_csrf_token
+
 from django.template.response import TemplateResponse
 from django.shortcuts import render
 from django.conf import settings
@@ -26,6 +28,18 @@ class UserDetailView(LoginRequiredMixin, DetailView):
     model = User
     slug_field = "username"
     slug_url_kwarg = "username"
+
+    def dispatch(self, request, id):
+        '''
+        Query database for user using user email.
+        '''
+        users = get_user_model()
+        user = users.objects.get(id=id)
+        # usersQueryset = users.objects.filter(user_email=user_email)
+        # if usersQueryset.count() > 1:
+            # user = usersQueryset
+        
+        return render(request, "users/user_detail.html", context={'object':user})
 
 
 user_detail_view = UserDetailView.as_view()
@@ -104,14 +118,18 @@ class ApplicantUserFormView(FormView):
                 county = form.cleaned_data["county"]
                 district = form.cleaned_data["district"]
                 division = form.cleaned_data["division"]
-                extra_fields = {"first_name":first_name, "last_name":last_name, "county":county, "district":district, "division":division} #phone_number missing
-            if form.add_user(user_email, password, **extra_fields): 
-                '''
-                perform user login and provide redirected login page
-                '''
-                context_dict = retrieveHomepageArticlesUrl(request)
-                return render(request, "pages/home.html", context=context_dict)
-            else: return render(request, template_name=self.template_name, context={"form":form})
+                extra_fields = {"first_name":first_name, "last_name":last_name, "county":county, "district":district, "division":division} #phone_number missing          
+                if form.add_user(request, user_email, password, **extra_fields): 
+                    '''
+                    perform user login and provide redirected login page
+                    authenticate user and serve home page
+                    '''
+                    if form.authenticate_user(request, user_email, password):
+                        context_dict = retrieveHomepageArticlesUrl(request)
+                        return render(request, "pages/home.html", context=context_dict)
+            else:
+                '''obtain error message from field and resend sign up page ?''' 
+                return render(request, template_name=self.template_name, context={"form":form})
         else:
             # return super(ApplicantUserFormView, self).dispatch(request, *args, **kwargs)
             form = self.get_context_data()["form"]
@@ -129,7 +147,6 @@ class ApplicantUserFormView(FormView):
 
 
 applicant_user = ApplicantUserFormView.as_view()
-
 
 class LoginUserView(FormView):
 
