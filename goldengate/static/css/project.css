@@ -158,6 +158,10 @@ nav{
   background-color: #ff0000;
 }
 
+input:read-only, textarea:read-only {
+  background-color:#afb0b0;
+  opacity: 1;
+}
 
 /* These styles are generated from project.scss. */
 

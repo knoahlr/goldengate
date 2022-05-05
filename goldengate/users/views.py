@@ -1,7 +1,9 @@
 from msilib.schema import Class
 from multiprocessing import context
+from re import template
 from sys import prefix
 from turtle import st
+from urllib.request import Request
 from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
@@ -9,7 +11,7 @@ from django.http import HttpResponse
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from django.views.generic import DetailView, RedirectView, UpdateView, TemplateView
-from django.views.generic.edit import FormView
+from django.views.generic.edit import FormView, FormMixin
 from django.views.decorators.csrf import requires_csrf_token
 
 from django.template.response import TemplateResponse
@@ -17,29 +19,48 @@ from django.shortcuts import render
 from django.conf import settings
 
 from utils.storages import StaticRootS3Boto3Storage
-from .forms import ApplicantUserForm, AccountHolderForm
+from .forms import ApplicantUserForm, AccountHolderForm, UserDetailForm
 import os, boto3, environ
 
-User = get_user_model()
+UserModel = get_user_model()
 
 
 class UserDetailView(LoginRequiredMixin, DetailView):
 
-    model = User
-    slug_field = "username"
-    slug_url_kwarg = "username"
+    model = UserModel
+    slug_field = "id"
+    slug_url_kwarg = "id"
+    template_name = "users/user_detail.html"
+    # form_class = ApplicantUserForm
+
+    # def __init__(self):
+    #     super().__init__()
+    #     self.object = self.get_object()
 
     def dispatch(self, request, id):
         '''
         Query database for user using user email.
         '''
-        users = get_user_model()
-        user = users.objects.get(id=id)
-        # usersQueryset = users.objects.filter(user_email=user_email)
-        # if usersQueryset.count() > 1:
-            # user = usersQueryset
-        
-        return render(request, "users/user_detail.html", context={'object':user})
+        if self.request.method == "GET":
+            self.object = self.get_object() #base class uses self.object ?
+            context_data_super = self.get_context_data()
+            context_data_super["form"] = UserDetailForm(instance=self.object) #initial={'get', self.object
+            return render(request, template_name=self.template_name, context=context_data_super)
+        elif self.request.method == "POST":
+            pass
+    
+    def get_queryset(self):
+        # if self.kwargs:
+        return UserModel.objects.filter(id=self.kwargs['id'])
+        # else: return None
+
+    def get_object(self):
+        return super().get_object()
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # context["form"] = self.get_form()
+        return context
 
 
 user_detail_view = UserDetailView.as_view()
@@ -47,7 +68,7 @@ user_detail_view = UserDetailView.as_view()
 
 class UserUpdateView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
 
-    model = User
+    model = UserModel
     fields = ["name"]
     success_message = _("Information successfully updated")
 

@@ -8,7 +8,8 @@ from django.contrib.auth import authenticate, login
 from django.utils.translation import gettext_lazy as _
 from django import forms
 from allauth.account.forms import SignupForm
-
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Row, Column, Field
 
 # User = get_user_model()
 from .models import ApplicantUser
@@ -20,30 +21,52 @@ class UserChangeForm(admin_forms.UserChangeForm):
         fields = {"first_name", "last_name", "user_email", "county", "district", "division"}
 
 class UserCreationForm(admin_forms.UserCreationForm):
-    
     class Meta(admin_forms.UserCreationForm.Meta):
         model = ApplicantUser
         fields = {"first_name", "last_name", "user_email", "county", "district", "division"}
 
-        error_messages = {
-            "user_email": {"unique": _("This email is already registered to a user.")}
-        }
+class UserDetailForm(forms.ModelForm):
+    class Meta:
+        model = ApplicantUser
+        fields = ['first_name', 'last_name', 'user_email', 'phone_number', 'county', 'district', 'division']
 
-class ApplicantUserForm(forms.Form):
-    '''
-    User leaving information to be contacted by goldengate
-    '''
+    def __init__(self, *args, **kwargs):
+        super(UserDetailForm, self).__init__(*args, **kwargs)
 
-    first_name = forms.CharField(max_length=100)
-    last_name = forms.CharField(max_length=100)
-    password = forms.CharField(widget=forms.PasswordInput())
-    user_email = forms.EmailField(max_length=100)
-    phone_number = forms.RegexField(regex=r'^\+?1?\d{9,15}$', 
-                                error_messages = {"required": "Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."})
-    county = forms.CharField(max_length=100)
-    district = forms.CharField(max_length=100)
-    division = forms.CharField(max_length=100)
+        self.helper = FormHelper(self)
 
+        self.helper.layout = Layout(
+            Row(
+                Column('first_name', css_class='form-group col-md-6 mb-0'),
+                Column('last_name', css_class='form-group col-md-6 mb-0'),
+                css_class='form-row'
+            ),
+            'user_email',
+            'phone_number',
+            Row(
+                Column('county', css_class='form-group col-md-6 mb-0'),
+                Column('district', css_class='form-group col-md-4 mb-0'),
+                Column('division', css_class='form-group col-md-2 mb-0'),
+                css_class='form-row'
+            ),
+        )
+        for nam, field in self.fields.items(): field.widget.attrs['readonly'] = True 
+
+     
+class ApplicantUserForm(forms.ModelForm):
+    
+    # password = forms.CharField(widget=forms.PasswordInput())
+
+    class Meta:
+        model = ApplicantUser
+        fields = ['first_name', 'last_name', 'user_email', 'phone_number', 'county', 'district', 'division']
+
+    def __init__(self, *args, **kwargs):
+        super(ApplicantUserForm, self).__init__(*args, **kwargs)
+
+        #TO-DO: Update password to use hashing
+        self.fields['password'] = forms.CharField(widget=forms.PasswordInput())
+ 
     # Put in custom signup logic
     def add_user(self, request, email, password, **extra_fields):
         '''
@@ -80,10 +103,8 @@ class ApplicantUserForm(forms.Form):
             self.add_error(field="username", error=forms.ValidationError("There's no account registered with that username."))
             return False
 
-
 class AccountHolderForm(forms.Form):
     '''User leaving information to be contacted by goldengate'''
-
     username = forms.EmailField(max_length=100)
     phone_number = forms.RegexField(regex=r'^\+?1?\d{9,15}$', 
                                 error_messages = {"required": "Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."},

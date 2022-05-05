@@ -1,9 +1,10 @@
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db.models import CharField, EmailField
-from django.forms import BooleanField
+from django.forms import BooleanField, PasswordInput
 from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from crispy_forms.helper import FormHelper
+from phonenumber_field.modelfields import PhoneNumberField
 
 from .managers import ApplicantUserManager
 
@@ -16,11 +17,12 @@ class ApplicantUser(AbstractBaseUser, PermissionsMixin):
     # name = CharField(_("Name of User"), blank=True, max_length=255)
     first_name = CharField(max_length=100)  # type: ignore
     last_name = CharField(max_length=100)  # type: ignore
+    # password = CharField(widget=PasswordInput())
     user_email = EmailField(max_length=100, unique=True)
     
     # phone_number = RegexField(regex=r'^\+?1?\d{9,15}$', 
     #                             error_messages = {"required": "Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed."})
-
+    phone_number = PhoneNumberField(blank=True)
     county = CharField(max_length=100)
     district = CharField(max_length=100)
     division = CharField(max_length=100)
